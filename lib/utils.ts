@@ -1,61 +1,48 @@
-/* eslint-disable no-prototype-builtins */
 import { type ClassValue, clsx } from "clsx";
 import qs from "query-string";
 import { twMerge } from "tailwind-merge";
+
+// Define or import missing types
+import { Account, Transaction, CategoryCount, AccountTypes } from './types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 // FORMAT DATE TIME
-export const formatDateTime = (dateString: Date) => {
+export const formatDateTime = (dateString: string | Date) => {
   const dateTimeOptions: Intl.DateTimeFormatOptions = {
-    weekday: "short", // abbreviated weekday name (e.g., 'Mon')
-    month: "short", // abbreviated month name (e.g., 'Oct')
-    day: "numeric", // numeric day of the month (e.g., '25')
-    hour: "numeric", // numeric hour (e.g., '8')
-    minute: "numeric", // numeric minute (e.g., '30')
-    hour12: true, // use 12-hour clock (true) or 24-hour clock (false)
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true,
   };
 
   const dateDayOptions: Intl.DateTimeFormatOptions = {
-    weekday: "short", // abbreviated weekday name (e.g., 'Mon')
-    year: "numeric", // numeric year (e.g., '2023')
-    month: "2-digit", // abbreviated month name (e.g., 'Oct')
-    day: "2-digit", // numeric day of the month (e.g., '25')
+    weekday: "short",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   };
 
   const dateOptions: Intl.DateTimeFormatOptions = {
-    month: "short", // abbreviated month name (e.g., 'Oct')
-    year: "numeric", // numeric year (e.g., '2023')
-    day: "numeric", // numeric day of the month (e.g., '25')
+    month: "short",
+    year: "numeric",
+    day: "numeric",
   };
 
   const timeOptions: Intl.DateTimeFormatOptions = {
-    hour: "numeric", // numeric hour (e.g., '8')
-    minute: "numeric", // numeric minute (e.g., '30')
-    hour12: true, // use 12-hour clock (true) or 24-hour clock (false)
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true,
   };
 
-  const formattedDateTime: string = new Date(dateString).toLocaleString(
-    "en-US",
-    dateTimeOptions
-  );
-
-  const formattedDateDay: string = new Date(dateString).toLocaleString(
-    "en-US",
-    dateDayOptions
-  );
-
-  const formattedDate: string = new Date(dateString).toLocaleString(
-    "en-US",
-    dateOptions
-  );
-
-  const formattedTime: string = new Date(dateString).toLocaleString(
-    "en-US",
-    timeOptions
-  );
+  const formattedDateTime = new Date(dateString).toLocaleString("en-US", dateTimeOptions);
+  const formattedDateDay = new Date(dateString).toLocaleString("en-US", dateDayOptions);
+  const formattedDate = new Date(dateString).toLocaleString("en-US", dateOptions);
+  const formattedTime = new Date(dateString).toLocaleString("en-US", timeOptions);
 
   return {
     dateTime: formattedDateTime,
@@ -75,7 +62,7 @@ export function formatAmount(amount: number): string {
   return formatter.format(amount);
 }
 
-export const parseStringify = (value: any) => JSON.parse(JSON.stringify(value));
+export const parseStringify = (value: unknown) => JSON.parse(JSON.stringify(value));
 
 export const removeSpecialCharacters = (value: string) => {
   return value.replace(/[^\w\s]/gi, "");
@@ -94,7 +81,7 @@ export function formUrlQuery({ params, key, value }: UrlQueryParams) {
 
   return qs.stringifyUrl(
     {
-      url: window.location.pathname,
+      url: typeof window !== "undefined" ? window.location.pathname : "", // Only on the client
       query: currentUrl,
     },
     { skipNull: true }
@@ -130,30 +117,21 @@ export function getAccountTypeColors(type: AccountTypes) {
 }
 
 export function countTransactionCategories(
-  transactions: Transaction[]
+  transactions: Transaction[] | undefined
 ): CategoryCount[] {
   const categoryCounts: { [category: string]: number } = {};
   let totalCount = 0;
 
-  // Iterate over each transaction
-  transactions &&
-    transactions.forEach((transaction) => {
-      // Extract the category from the transaction
-      const category = transaction.category;
+  transactions?.forEach((transaction) => {
+    const category = transaction.category;
+    if (categoryCounts.hasOwnProperty(category)) {
+      categoryCounts[category]++;
+    } else {
+      categoryCounts[category] = 1;
+    }
+    totalCount++;
+  });
 
-      // If the category exists in the categoryCounts object, increment its count
-      if (categoryCounts.hasOwnProperty(category)) {
-        categoryCounts[category]++;
-      } else {
-        // Otherwise, initialize the count to 1
-        categoryCounts[category] = 1;
-      }
-
-      // Increment total count
-      totalCount++;
-    });
-
-  // Convert the categoryCounts object to an array of objects
   const aggregatedCategories: CategoryCount[] = Object.keys(categoryCounts).map(
     (category) => ({
       name: category,
@@ -162,20 +140,14 @@ export function countTransactionCategories(
     })
   );
 
-  // Sort the aggregatedCategories array by count in descending order
   aggregatedCategories.sort((a, b) => b.count - a.count);
 
   return aggregatedCategories;
 }
 
 export function extractCustomerIdFromUrl(url: string) {
-  // Split the URL string by '/'
   const parts = url.split("/");
-
-  // Extract the last part, which represents the customer ID
-  const customerId = parts[parts.length - 1];
-
-  return customerId;
+  return parts[parts.length - 1];
 }
 
 export function encryptId(id: string) {
